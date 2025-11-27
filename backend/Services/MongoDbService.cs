@@ -1,3 +1,4 @@
+using MongoDB.Bson;
 using MongoDB.Driver;
 using backend.Models;
 
@@ -188,5 +189,44 @@ public class MongoDbService
         return await _sensorDataCollection
             .Distinct(x => x.SensorId, filter)
             .ToListAsync();
+    }
+
+    public async Task<List<SensorStats>> GetSensorStatsAsync(int sampleCount = 100)
+    {
+        // Get distinct sensor combinations (sensorId + sensorType)
+        var pipeline = new BsonDocument[]
+        {
+            new BsonDocument("$sort", new BsonDocument("timestamp", -1)),
+            new BsonDocument("$group", new BsonDocument
+            {
+                { "_id", new BsonDocument { { "sensorId", "$sensorId" }, { "sensorType", "$sensorType" } } },
+                { "lastValue", new BsonDocument("$first", "$value") },
+                { "lastTimestamp", new BsonDocument("$first", "$timestamp") },
+                { "unit", new BsonDocument("$first", "$unit") },
+                { "values", new BsonDocument("$push", "$value") }
+            })
+        };
+
+        var results = await _sensorDataCollection.Aggregate<BsonDocument>(pipeline).ToListAsync();
+        
+        var stats = new List<SensorStats>();
+        foreach (var doc in results)
+        {
+            var id = doc["_id"].AsBsonDocument;
+            var values = doc["values"].AsBsonArray.Take(sampleCount).Select(v => v.ToDouble()).ToList();
+            
+            stats.Add(new SensorStats
+            {
+                SensorId = id["sensorId"].ToInt32(),
+                SensorType = id["sensorType"].AsString,
+                Unit = doc["unit"].AsString,
+                LastValue = doc["lastValue"].ToDouble(),
+                LastTimestamp = doc["lastTimestamp"].ToUniversalTime(),
+                AverageValue = values.Count > 0 ? values.Average() : 0,
+                SampleCount = values.Count
+            });
+        }
+
+        return stats.OrderBy(s => s.SensorType).ThenBy(s => s.SensorId).ToList();
     }
 }

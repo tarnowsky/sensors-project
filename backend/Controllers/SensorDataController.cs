@@ -137,4 +137,14 @@ public class SensorDataController : ControllerBase
         var ids = await _mongoDbService.GetSensorIdsAsync(sensorType);
         return Ok(ids);
     }
+
+    /// <summary>
+    /// Get statistics for all sensors (last value and average of last N readings)
+    /// </summary>
+    [HttpGet("stats")]
+    public async Task<ActionResult<List<SensorStats>>> GetSensorStats([FromQuery] int sampleCount = 100)
+    {
+        var stats = await _mongoDbService.GetSensorStatsAsync(sampleCount);
+        return Ok(stats);
+    }
 }

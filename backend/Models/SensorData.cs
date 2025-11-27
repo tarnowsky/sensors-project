@@ -45,3 +45,14 @@ public class PaginatedResult<T>
     public int PageSize { get; set; }
     public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
 }
+
+public class SensorStats
+{
+    public int SensorId { get; set; }
+    public string SensorType { get; set; } = string.Empty;
+    public string Unit { get; set; } = string.Empty;
+    public double LastValue { get; set; }
+    public DateTime LastTimestamp { get; set; }
+    public double AverageValue { get; set; }
+    public int SampleCount { get; set; }
+}

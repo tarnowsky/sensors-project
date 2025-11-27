@@ -9,13 +9,152 @@
 }
 
 .App-header h1 {
-  margin: 0;
+  margin: 0 0 15px 0;
+}
+
+.tab-nav {
+  display: flex;
+  gap: 10px;
+}
+
+.tab-nav button {
+  padding: 10px 20px;
+  background-color: transparent;
+  color: white;
+  border: 1px solid #555;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.tab-nav button:hover {
+  background-color: #3a3f47;
+}
+
+.tab-nav button.active {
+  background-color: #4CAF50;
+  border-color: #4CAF50;
 }
 
 .App-main {
   padding: 20px;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
+}
+
+.auto-refresh-note {
+  color: #666;
+  font-size: 12px;
+  margin-bottom: 15px;
+}
+
+/* Dashboard styles */
+.dashboard {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  padding: 20px;
+}
+
+.dashboard h2 {
+  margin-top: 0;
+}
+
+.sensor-type-group {
+  margin-bottom: 30px;
+}
+
+.sensor-type-group h3 {
+  color: #282c34;
+  border-bottom: 2px solid #4CAF50;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+.sensor-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.sensor-card {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+.sensor-card-header {
+  background-color: #282c34;
+  color: white;
+  padding: 12px 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sensor-id {
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.sensor-unit {
+  background-color: #4CAF50;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.sensor-card-body {
+  padding: 15px;
+}
+
+.sensor-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.stat-label {
+  color: #666;
+  font-size: 14px;
+}
+
+.stat-value {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.last-value {
+  color: #2196F3;
+}
+
+.avg-value {
+  color: #4CAF50;
+}
+
+.sensor-card-footer {
+  padding: 10px 15px;
+  background-color: #eee;
+  font-size: 11px;
+  color: #666;
+}
+
+/* Chart styles */
+.charts {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  padding: 20px;
+}
+
+.charts h2 {
+  margin-top: 0;
+}
+
+.chart-container {
+  margin-top: 20px;
 }
 
 .filters {
