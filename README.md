@@ -1,6 +1,6 @@
 # Sensor Data Monitoring System
 
-A complete sensor data monitoring system built with ASP.NET Core 8.0, React, MongoDB, and MQTT.
+A complete sensor data monitoring system built with ASP.NET Core 8.0, React, MongoDB, and MQTT. Includes an optional blockchain module for rewarding sensors with ERC-20 tokens.
 
 ## System Requirements
 
@@ -45,6 +45,7 @@ The system consists of the following components:
 - REST API for sensor data
 - Automatic MQTT subscription and data ingestion
 - Data filtering, sorting, and export (JSON/CSV)
+- Blockchain integration for sensor token rewards
 - Swagger/OpenAPI documentation
 
 ### 4. Frontend (React)
@@ -52,6 +53,7 @@ The system consists of the following components:
 - Filtering by date, sensor type, and sensor ID
 - Sortable data table
 - Data export functionality
+- Token balances dashboard for administrators
 
 ### 5. Sensor Simulator (Python)
 - Simulates 16 sensors (4 of each type):
@@ -61,7 +63,15 @@ The system consists of the following components:
   - Dissolved oxygen sensors
 - Publishes data to MQTT broker
 
+### 6. Blockchain Module (Optional)
+- ERC-20 smart contract (SensorToken - SENS)
+- Automatic token rewards for sensors on each message
+- Admin dashboard for viewing token balances
+- Supports Ethereum-compatible networks
+
 ## API Endpoints
+
+### Sensor Data
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -71,6 +81,17 @@ The system consists of the following components:
 | GET | /api/sensordata/export/json | Export data as JSON |
 | GET | /api/sensordata/export/csv | Export data as CSV |
 | GET | /health | Health check endpoint |
+
+### Blockchain
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/blockchain/status | Get blockchain service status |
+| GET | /api/blockchain/balances | Get all sensor token balances |
+| GET | /api/blockchain/balances/{sensorId} | Get balance for specific sensor |
+| GET | /api/blockchain/transfers | Get recent token transfers |
+| GET | /api/blockchain/transfers/{sensorId} | Get transfers for specific sensor |
+| GET | /api/blockchain/wallets/{sensorId} | Get or create wallet for sensor |
 
 ### Query Parameters
 
@@ -106,6 +127,14 @@ pip install -r requirements.txt
 python main.py
 ```
 
+### Blockchain (Smart Contract)
+```bash
+cd blockchain
+npm install
+npm run compile
+npm test
+```
+
 ## Configuration
 
 ### Environment Variables
@@ -117,6 +146,14 @@ python main.py
 - `MQTT_BROKER` - MQTT broker host (default: localhost)
 - `MQTT_PORT` - MQTT broker port (default: 1883)
 
+#### Blockchain (Optional)
+- `BLOCKCHAIN_ENABLED` - Enable blockchain features (default: false)
+- `BLOCKCHAIN_RPC_URL` - Ethereum RPC endpoint (default: http://localhost:8545)
+- `BLOCKCHAIN_CONTRACT_ADDRESS` - Deployed SensorToken contract address
+- `BLOCKCHAIN_PRIVATE_KEY` - Contract owner's private key
+- `BLOCKCHAIN_CHAIN_ID` - Network chain ID (default: 31337)
+- `BLOCKCHAIN_REWARD_AMOUNT` - Tokens per message (default: 1)
+
 #### Frontend
 - `REACT_APP_API_URL` - Backend API URL (default: http://localhost:5001)
 
@@ -124,6 +161,30 @@ python main.py
 - `MQTT_BROKER` - MQTT broker host (default: localhost)
 - `MQTT_PORT` - MQTT broker port (default: 1883)
 - `AUTO_START` - Auto-start sensors (default: false)
+
+## Blockchain Module
+
+See [blockchain/README.md](blockchain/README.md) for detailed blockchain module documentation.
+
+### Quick Setup
+
+1. Deploy the smart contract:
+```bash
+cd blockchain
+npm install
+npm run node  # Start local blockchain (terminal 1)
+npm run deploy:local  # Deploy contract (terminal 2)
+```
+
+2. Configure backend environment:
+```bash
+export BLOCKCHAIN_ENABLED=true
+export BLOCKCHAIN_RPC_URL=http://localhost:8545
+export BLOCKCHAIN_CONTRACT_ADDRESS=<deployed_contract_address>
+export BLOCKCHAIN_PRIVATE_KEY=<deployer_private_key>
+```
+
+3. Start the system - sensors will now receive tokens for each message sent.
 
 ## License
 

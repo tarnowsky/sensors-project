@@ -21,6 +21,9 @@ builder.Services.AddCors(options =>
 // Register MongoDB service
 builder.Services.AddSingleton<MongoDbService>();
 
+// Register Blockchain service
+builder.Services.AddSingleton<BlockchainService>();
+
 // Register MQTT hosted service
 builder.Services.AddHostedService<MqttService>();
 

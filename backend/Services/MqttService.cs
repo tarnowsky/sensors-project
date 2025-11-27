@@ -11,16 +11,19 @@ public class MqttService : IHostedService
 {
     private readonly ILogger<MqttService> _logger;
     private readonly MongoDbService _mongoDbService;
+    private readonly BlockchainService _blockchainService;
     private readonly IConfiguration _configuration;
     private IManagedMqttClient? _mqttClient;
 
     public MqttService(
         ILogger<MqttService> logger, 
         MongoDbService mongoDbService,
+        BlockchainService blockchainService,
         IConfiguration configuration)
     {
         _logger = logger;
         _mongoDbService = mongoDbService;
+        _blockchainService = blockchainService;
         _configuration = configuration;
     }
 
@@ -100,6 +103,17 @@ public class MqttService : IHostedService
                 await _mongoDbService.InsertAsync(sensorData);
                 _logger.LogDebug("Stored sensor data: {SensorType} - {Value} {Unit}", 
                     sensorData.SensorType, sensorData.Value, sensorData.Unit);
+
+                // Reward sensor with tokens for sending data
+                try
+                {
+                    await _blockchainService.RewardSensorAsync(sensorMessage.SensorId);
+                    _logger.LogDebug("Rewarded sensor {SensorId} with tokens", sensorMessage.SensorId);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to reward sensor {SensorId}", sensorMessage.SensorId);
+                }
             }
         }
         catch (Exception ex)

@@ -1,7 +1,7 @@
 import './App.css';
 
-import React, {useEffect, useState, useCallback} from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import React, {useCallback, useEffect, useState} from 'react';
+import {CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis} from 'recharts';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
@@ -32,24 +32,39 @@ function App() {
   });
   const [totalPages, setTotalPages] = useState(1);
 
+  // Blockchain state
+  const [tokenBalances, setTokenBalances] = useState([]);
+  const [recentTransfers, setRecentTransfers] = useState([]);
+  const [blockchainStatus, setBlockchainStatus] = useState(null);
+  const [blockchainLoading, setBlockchainLoading] = useState(false);
+
   // Fetch sensor types on mount
   useEffect(() => {
     fetch(`${API_URL}/api/sensordata/types`)
         .then(res => res.json())
         .then(data => setSensorTypes(data))
         .catch(err => console.error('Failed to fetch sensor types:', err));
+
+
+    // Fetch blockchain status
+    fetch(`${API_URL}/api/blockchain/status`)
+        .then(res => res.json())
+        .then(data => setBlockchainStatus(data))
+        .catch(err => console.error('Failed to fetch blockchain status:', err));
   }, []);
 
   // Fetch sensor stats for dashboard - with auto-refresh
   const fetchStats = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/sensordata/stats?sampleCount=100`);
+      const response =
+          await fetch(`${API_URL}/api/sensordata/stats?sampleCount=100`);
       const data = await response.json();
       setSensorStats(data);
     } catch (err) {
       console.error('Failed to fetch sensor stats:', err);
     }
   }, []);
+
 
   useEffect(() => {
     fetchStats();
@@ -67,8 +82,10 @@ function App() {
         if (filters.sensorType) params.append('sensorType', filters.sensorType);
         if (filters.sensorId) params.append('sensorId', filters.sensorId);
         // Convert datetime-local format to ISO 8601
-        if (filters.startDate) params.append('startDate', toISOString(filters.startDate));
-        if (filters.endDate) params.append('endDate', toISOString(filters.endDate));
+        if (filters.startDate)
+          params.append('startDate', toISOString(filters.startDate));
+        if (filters.endDate)
+          params.append('endDate', toISOString(filters.endDate));
         if (filters.sortBy) params.append('sortBy', filters.sortBy);
         params.append('sortDescending', filters.sortDescending);
         params.append('page', filters.page);
@@ -118,7 +135,8 @@ function App() {
     if (filters.sensorType) params.append('sensorType', filters.sensorType);
     if (filters.sensorId) params.append('sensorId', filters.sensorId);
     // Convert datetime-local format to ISO 8601 for export
-    if (filters.startDate) params.append('startDate', toISOString(filters.startDate));
+    if (filters.startDate)
+      params.append('startDate', toISOString(filters.startDate));
     if (filters.endDate) params.append('endDate', toISOString(filters.endDate));
     if (filters.sortBy) params.append('sortBy', filters.sortBy);
     params.append('sortDescending', filters.sortDescending);
@@ -128,12 +146,15 @@ function App() {
   };
 
   // Prepare chart data from sensor data
-  const chartData = sensorData.map(item => ({
-    timestamp: new Date(item.timestamp).toLocaleTimeString(),
-    value: item.value,
-    sensorId: `${item.sensorType}-${item.sensorId}`,
-    sensorType: item.sensorType
-  })).reverse();
+  const chartData =
+      sensorData
+          .map(item => ({
+                 timestamp: new Date(item.timestamp).toLocaleTimeString(),
+                 value: item.value,
+                 sensorId: `${item.sensorType}-${item.sensorId}`,
+                 sensorType: item.sensorType
+               }))
+          .reverse();
 
   // Group stats by sensor type for dashboard
   const statsBySensorType = sensorStats.reduce((acc, stat) => {
@@ -141,6 +162,33 @@ function App() {
     acc[stat.sensorType].push(stat);
     return acc;
   }, {});
+
+  // Fetch blockchain data when tab changes to tokens
+  useEffect(() => {
+    if (activeTab === 'tokens') {
+      fetchBlockchainData();
+    }
+  }, [activeTab]);
+
+  const fetchBlockchainData = async () => {
+    setBlockchainLoading(true);
+    try {
+      const [balancesRes, transfersRes] = await Promise.all([
+        fetch(`${API_URL}/api/blockchain/balances`),
+        fetch(`${API_URL}/api/blockchain/transfers?limit=20`)
+      ]);
+
+      const balances = await balancesRes.json();
+      const transfers = await transfersRes.json();
+
+      setTokenBalances(balances);
+      setRecentTransfers(transfers);
+    } catch (err) {
+      console.error('Failed to fetch blockchain data:', err);
+    } finally {
+      setBlockchainLoading(false);
+    }
+  };
 
   return (
     <div className='App'>
@@ -153,8 +201,8 @@ function App() {
           >
             Dashboard
           </button>
-          <button 
-            className={activeTab === 'data' ? 'active' : ''} 
+          <button
+            className={activeTab === 'data' ? 'active' : ''}
             onClick={() => setActiveTab('data')}
           >
             Data Table
@@ -164,6 +212,12 @@ function App() {
             onClick={() => setActiveTab('charts')}
           >
             Charts
+          </button>
+          <button 
+            className={activeTab === 'tokens' ? 'active' : ''} 
+            onClick={() => setActiveTab('tokens')}
+          >
+            Token Balances
           </button>
         </nav>
       </header>
@@ -202,11 +256,13 @@ function App() {
                           </span>
                         </div>
                       </div>
-                    ))}
+                    ))
+}
                   </div>
                 </div>
               ))
-            )}
+            )
+                  }
           </section>
         )}
 
@@ -214,25 +270,24 @@ function App() {
           <section className='charts'>
             <h2>Sensor Data Charts</h2>
             <div className='filters'>
-              <div className="filter-row">
+              <div className='filter-row'>
                 <label>
                   Sensor Type:
-                  <select name="sensorType" value={filters.sensorType} onChange={handleFilterChange}>
-                    <option value="">All Types</option>
+                  <select name='sensorType' value={filters.sensorType} onChange={handleFilterChange}>
+                    <option value=''>All Types</option>
                     {sensorTypes.map(type => (
                       <option key={type} value={type}>{type}</option>
-                    ))}
-                  </select>
+                    ))
+          }
+          </select>
                 </label>
-                
-                <label>
-                  Sensor ID:
-                  <input
-                    type="number"
-                    name="sensorId"
+
+              <label>Sensor ID: < input
+          type = 'number'
+          name = 'sensorId'
                     value={filters.sensorId}
                     onChange={handleFilterChange}
-                    placeholder="Any"
+                    placeholder='Any'
                   />
                 </label>
                 
@@ -266,19 +321,20 @@ function App() {
                 <ResponsiveContainer width="100%" height={400}>
                   <LineChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="timestamp" />
+                    <XAxis dataKey='timestamp' />
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Line type="monotone" dataKey="value" stroke="#8884d8" dot={false} name="Sensor Value" />
+                    <Line type='monotone' dataKey='value' stroke='#8884d8' dot={false} name='Sensor Value' />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
             )}
           </section>
-        )}
+        )
+                    }
 
-        {activeTab === 'data' && (
+                    {activeTab === 'data' && (
           <>
             <section className='filters'>
               <h2>Filters</h2>
@@ -331,64 +387,151 @@ function App() {
               </div>
             </section>
 
-            <section className='data-table'>
-              <h2>Sensor Data</h2>
+                <section className='data-table'>
+                  <h2>Sensor Data</h2>
               <p className='auto-refresh-note'>Auto-refreshes every 5 seconds</p>
-              {loading ? (
+                  {loading ? (
+                    <p>Loading...</p>
+                  ) : error ? (
+                    <p className='error'>{error}</p>
+                  ) : sensorData.length === 0 ? (
+                    <p>No data available. Start the sensors to begin collecting data.</p>
+                  ) : (
+                    <>
+                      <table>
+                        <thead>
+                          <tr>
+                            <th onClick={() => handleSort('sensorId')}>
+                              Sensor ID {filters.sortBy === 'sensorId' && (filters.sortDescending ? '↓' : '↑')}
+                            </th>
+                            <th onClick={() => handleSort('sensorType')}>
+                              Type {filters.sortBy === 'sensorType' && (filters.sortDescending ? '↓' : '↑')}
+                            </th>
+                            <th onClick={() => handleSort('value')}>
+                              Value {filters.sortBy === 'value' && (filters.sortDescending ? '↓' : '↑')}
+                            </th>
+                            <th>Unit</th>
+                            <th onClick={() => handleSort('timestamp')}>
+                              Timestamp {filters.sortBy === 'timestamp' && (filters.sortDescending ? '↓' : '↑')}
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sensorData.map((item, index) => (
+                            <tr key={item.id || index}>
+                              <td>{item.sensorId}</td>
+                              <td>{item.sensorType}</td>
+                              <td>{(item.value ?? 0).toFixed(2)}</td>
+                              <td>{item.unit}</td>
+                              <td>{new Date(item.timestamp).toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      
+                      <div className='pagination'>
+                        <button
+                          disabled={filters.page <= 1}
+                          onClick={() => setFilters(prev => ({...prev, page: prev.page - 1}))}
+                        >
+                          Previous
+                        </button>
+                        <span>Page {filters.page} of {totalPages}</span>
+                        <button
+                          disabled={filters.page >= totalPages}
+                          onClick={() => setFilters(prev => ({ ...prev, page: prev.page + 1 }))}
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </section>
+          </>
+        )}
+
+        {activeTab === 'tokens' && (
+          <>
+            <section className='blockchain-status'>
+              <h2>Blockchain Status</h2>
+              {blockchainStatus && (
+                <div className='status-info'>
+                  <p><strong>Status:</strong> {blockchainStatus.enabled ? (blockchainStatus.connected ? 'Connected' : 'Enabled (Simulation Mode)') : 'Disabled'}</p>
+                  {blockchainStatus.enabled && (
+                    <>
+                      <p><strong>Network:</strong> Chain ID {blockchainStatus.chainId}</p>
+                      <p><strong>Reward per Message:</strong> {blockchainStatus.rewardAmount} SENS</p>
+                      {blockchainStatus.contractAddress && (
+                        <p><strong>Contract:</strong> <code>{blockchainStatus.contractAddress}</code></p>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+              <button className='refresh-btn' onClick={fetchBlockchainData} disabled={blockchainLoading}>
+                {blockchainLoading ? 'Loading...' : 'Refresh'}
+              </button>
+            </section>
+
+            <section className='data-table'>
+              <h2>Sensor Token Balances</h2>
+              {blockchainLoading ? (
                 <p>Loading...</p>
-              ) : error ? (
-                <p className='error'>{error}</p>
-              ) : sensorData.length === 0 ? (
-                <p>No data available. Start the sensors to begin collecting data.</p>
+              ) : tokenBalances.length === 0 ? (
+                <p>No sensor wallets found. Sensors will be registered when they send data.</p>
               ) : (
-                <>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th onClick={() => handleSort('sensorId')}>
-                          Sensor ID {filters.sortBy === 'sensorId' && (filters.sortDescending ? '↓' : '↑')}
-                        </th>
-                        <th onClick={() => handleSort('sensorType')}>
-                          Type {filters.sortBy === 'sensorType' && (filters.sortDescending ? '↓' : '↑')}
-                        </th>
-                        <th onClick={() => handleSort('value')}>
-                          Value {filters.sortBy === 'value' && (filters.sortDescending ? '↓' : '↑')}
-                        </th>
-                        <th>Unit</th>
-                        <th onClick={() => handleSort('timestamp')}>
-                          Timestamp {filters.sortBy === 'timestamp' && (filters.sortDescending ? '↓' : '↑')}
-                        </th>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Sensor ID</th>
+                      <th>Wallet Address</th>
+                      <th>Token Balance (SENS)</th>
+                      <th>Messages Sent</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tokenBalances.map((item) => (
+                      <tr key={item.sensorId}>
+                        <td>{item.sensorId}</td>
+                        <td><code>{item.walletAddress}</code></td>
+                        <td>{item.balance.toFixed(2)}</td>
+                        <td>{item.messageCount}</td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {sensorData.map((item, index) => (
-                        <tr key={item.id || index}>
-                          <td>{item.sensorId}</td>
-                          <td>{item.sensorType}</td>
-                          <td>{(item.value ?? 0).toFixed(2)}</td>
-                          <td>{item.unit}</td>
-                          <td>{new Date(item.timestamp).toLocaleString()}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  
-                  <div className="pagination">
-                    <button 
-                      disabled={filters.page <= 1} 
-                      onClick={() => setFilters(prev => ({ ...prev, page: prev.page - 1 }))}
-                    >
-                      Previous
-                    </button>
-                    <span>Page {filters.page} of {totalPages}</span>
-                    <button 
-                      disabled={filters.page >= totalPages}
-                      onClick={() => setFilters(prev => ({ ...prev, page: prev.page + 1 }))}
-                    >
-                      Next
-                    </button>
-                  </div>
-                </>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </section>
+
+            <section className='data-table'>
+              <h2>Recent Token Transfers</h2>
+              {blockchainLoading ? (
+                <p>Loading...</p>
+              ) : recentTransfers.length === 0 ? (
+                <p>No transfers yet.</p>
+              ) : (
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Sensor ID</th>
+                      <th>Amount (SENS)</th>
+                      <th>Status</th>
+                      <th>Transaction Hash</th>
+                      <th>Timestamp</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentTransfers.map((item, index) => (
+                      <tr key={item.id || index}>
+                        <td>{item.sensorId}</td>
+                        <td>{item.amount.toFixed(2)}</td>
+                        <td className={`status-${item.status}`}>{item.status}</td>
+                        <td><code>{item.transactionHash && typeof item.transactionHash === 'string' ? item.transactionHash.substring(0, 16) + '...' : '-'}</code></td>
+                        <td>{new Date(item.timestamp).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               )}
             </section>
           </>
