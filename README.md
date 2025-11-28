@@ -23,7 +23,6 @@ docker compose up -d
 3. Access the applications:
    - **Frontend**: http://localhost:3000
    - **Backend API**: http://localhost:5001
-   - **Swagger API Docs**: http://localhost:5001/swagger
    - **MongoDB**: localhost:27017
    - **MQTT Broker**: localhost:1883
 
@@ -147,7 +146,6 @@ npm test
 - `MQTT_PORT` - MQTT broker port (default: 1883)
 
 #### Blockchain (Optional)
-- `BLOCKCHAIN_ENABLED` - Enable blockchain features (default: false)
 - `BLOCKCHAIN_RPC_URL` - Ethereum RPC endpoint (default: http://localhost:8545)
 - `BLOCKCHAIN_CONTRACT_ADDRESS` - Deployed SensorToken contract address
 - `BLOCKCHAIN_PRIVATE_KEY` - Contract owner's private key
@@ -165,26 +163,6 @@ npm test
 ## Blockchain Module
 
 See [blockchain/README.md](blockchain/README.md) for detailed blockchain module documentation.
-
-### Quick Setup
-
-1. Deploy the smart contract:
-```bash
-cd blockchain
-npm install
-npm run node  # Start local blockchain (terminal 1)
-npm run deploy:local  # Deploy contract (terminal 2)
-```
-
-2. Configure backend environment:
-```bash
-export BLOCKCHAIN_ENABLED=true
-export BLOCKCHAIN_RPC_URL=http://localhost:8545
-export BLOCKCHAIN_CONTRACT_ADDRESS=<deployed_contract_address>
-export BLOCKCHAIN_PRIVATE_KEY=<deployer_private_key>
-```
-
-3. Start the system - sensors will now receive tokens for each message sent.
 
 ## License
 
